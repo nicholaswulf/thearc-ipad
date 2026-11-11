@@ -11,6 +11,7 @@ export const lib = {
   bookCovers: new Map(), // Buchname → File
   connected: false,
   rootName: '',
+  dbFile: null, // _TheArc/thearc.sqlite von der Platte (Kopie der Desktop-Datenbank), falls vorhanden
 };
 
 export const user = {

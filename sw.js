@@ -1,5 +1,5 @@
 // Service Worker: legt die App-Dateien auf dem iPad ab, damit TheArc auch ohne Netz startet.
-const CACHE = 'thearc-ipad-v1';
+const CACHE = 'thearc-ipad-v2';
 const FILES = [
   './',
   'index.html',
@@ -16,6 +16,9 @@ const FILES = [
   'js/scan.js',
   'js/covers.js',
   'js/player.js',
+  'js/import.js',
+  'vendor/sql-wasm.js',
+  'vendor/sql-wasm.wasm',
 ];
 
 self.addEventListener('install', (e) => {

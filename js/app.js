@@ -3,6 +3,7 @@ import { h, icon, fmtTime, plural, openSheet, toast, VList } from './ui.js';
 import { lib, user, loadAll, onChange, isFav, toggleFav, savePlaylists, emit } from './state.js';
 import { scanFiles, UNSORTED, colorFor } from './scan.js';
 import { requestPersistence } from './db.js';
+import { maybeImport } from './import.js';
 import { coverFor, folderCover } from './covers.js';
 import * as player from './player.js';
 import { P } from './player.js';
@@ -49,6 +50,7 @@ picker.addEventListener('change', async () => {
   picker.value = '';
   toast(`${plural(r.tracks, 'Song', 'Songs')} in ${plural(r.genres, 'Genre', 'Genres')} (${((performance.now() - t0) / 1000).toFixed(1)} s)`);
   requestPersistence();
+  await importFromPc();
   const fn = pending;
   pending = null;
   if (fn) fn();
@@ -56,6 +58,23 @@ picker.addEventListener('change', async () => {
   render();
 });
 const pickFolder = () => picker.click();
+
+// Playlists, Favoriten und Lesezeichen aus der Backup-Datenbank der Platte übernehmen
+async function importFromPc({ force = false } = {}) {
+  if (!lib.dbFile) {
+    if (force) toast('Auf der Platte ist keine Backup-Datenbank (_TheArc) gefunden worden');
+    return;
+  }
+  try {
+    const r = await maybeImport(lib.dbFile, { force });
+    if (!r) return force && toast('Schon auf dem neuesten Stand');
+    const parts = [r.playlists && plural(r.playlists, 'Playlist', 'Playlists'), r.favorites && plural(r.favorites, 'Favorit', 'Favoriten'), r.bookmarks && plural(r.bookmarks, 'Lesezeichen', 'Lesezeichen')].filter(Boolean);
+    toast(parts.length ? `Vom PC übernommen: ${parts.join(', ')}` : 'Vom PC: nichts Neues');
+  } catch (e) {
+    toast('Import vom PC fehlgeschlagen');
+    console.warn(e);
+  }
+}
 
 // ---------- Hilfen ----------
 const trackOf = (key) => lib.byKey.get(key);
@@ -389,7 +408,20 @@ function booksPage() {
 
 // ---------- Navigation ----------
 function folderBtn() {
-  return h('button', { class: 'icon-btn', 'aria-label': 'Ordner wechseln', title: lib.rootName ? `Ordner: ${lib.rootName}` : 'Ordner wählen', onClick: pickFolder }, icon('folder', 22));
+  return h(
+    'button',
+    {
+      class: 'icon-btn',
+      'aria-label': 'Ordner',
+      title: lib.rootName ? `Ordner: ${lib.rootName}` : 'Ordner wählen',
+      onClick: () =>
+        openSheet(lib.rootName ? `Ordner: ${lib.rootName}` : 'Ordner', [
+          { label: 'Ordner neu wählen', icon: 'folder', action: pickFolder },
+          { label: 'Playlists & Favoriten vom PC übernehmen', icon: 'list', action: () => (lib.connected ? importFromPc({ force: true }) : toast('Erst den Ordner auf der Platte wählen')) },
+        ]),
+    },
+    icon('folder', 22),
+  );
 }
 function backBtn(tab) {
   return h('button', { class: 'icon-btn back', 'aria-label': 'Zurück', onClick: () => go(tab, null) }, icon('down', 24));

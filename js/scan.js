@@ -26,6 +26,7 @@ export async function scanFiles(fileList) {
   const tracks = [];
   const bookMap = new Map();
   let rootName = '';
+  let dbFile = null;
 
   for (const f of fileList) {
     const rel = f.webkitRelativePath || f.name;
@@ -33,6 +34,10 @@ export async function scanFiles(fileList) {
     if (parts.length > 1) rootName = parts[0];
     const p = parts.length > 1 ? parts.slice(1) : parts; // ohne den gewählten Wurzelordner
     const top = p[0];
+    if (p.length === 2 && top === '_TheArc' && p[1] === 'thearc.sqlite') {
+      dbFile = f; // Datenbank-Kopie vom Backup: für den Import von Playlists und Favoriten
+      continue;
+    }
     if (p.length > 1 && (SKIP.has(top.toLowerCase()) || top.startsWith('_') || top.startsWith('.'))) continue;
     if (p.length === 1 && top.startsWith('.')) continue;
 
@@ -80,6 +85,7 @@ export async function scanFiles(fileList) {
   lib.files = files;
   lib.genreCovers = genreCovers;
   lib.bookCovers = bookCovers;
+  lib.dbFile = dbFile;
   lib.connected = true;
   await saveIndex();
   emit();
